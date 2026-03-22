@@ -704,10 +704,23 @@
         // Disegna i nemici
         function drawEnemies() {
             for (let enemy of enemies) {
+                // Disegna l'aura di glow sfumata intorno al nemico
                 const centerX = enemy.x + enemy.width/2;
                 const centerY = enemy.y + enemy.height/2;
-
-                // Corpo base
+                const glowGradient = ctx.createRadialGradient(
+                    centerX, centerY, enemy.width/2,
+                    centerX, centerY, enemy.width/2 + 15
+                );
+                glowGradient.addColorStop(0, hexToRgba(enemy.color, 0.25));
+                glowGradient.addColorStop(0.5, hexToRgba(enemy.color, 0.12));
+                glowGradient.addColorStop(1, hexToRgba(enemy.color, 0));
+                
+                ctx.fillStyle = glowGradient;
+                ctx.beginPath();
+                ctx.ellipse(centerX, centerY, enemy.width/2 + 15, enemy.height/2 + 15, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Disegna il corpo del nemico
                 ctx.fillStyle = enemy.color;
                 ctx.beginPath();
                 ctx.ellipse(centerX, centerY, enemy.width/2, enemy.height/2, 0, 0, Math.PI * 2);
@@ -1211,17 +1224,14 @@
 
         // Disegna stelle nello sfondo
         function drawStars() {
-            if (!starsEnabled) return;
-            const now = Date.now() / 1000;
-            const scrollSpeed = 10; // movimento verticale costante
-            for (let i = 0; i < stars.length; i++) {
-                const star = stars[i];
-                const y = (star.y + now * scrollSpeed) % canvas.height;
-                const alpha = 0.6 + 0.4 * Math.sin(now * 2 + star.phase);
-
-                ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
+        	if (!starsEnabled) return;
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i < 50; i++) {
+                const x = (Math.sin(i * 100) * canvas.width/2 + canvas.width/2) % canvas.width;
+                const y = (i * 15 + Date.now() / 50) % canvas.height;
+                const size = Math.sin(Date.now() / 1000 + i) * 1.5 + 1.5;
                 ctx.beginPath();
-                ctx.arc(star.x, y, star.size, 0, Math.PI * 2);
+                ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
