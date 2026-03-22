@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Matrix ULTRA</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+
+  <canvas id="matrix"></canvas>
+
+  <script>
+    const canvas = document.getElementById("matrix");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const letters = "アァイィウヴエオカキクケコサシスセソABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const chars = letters.split("");
+
+    const fontSize = 18;
+    let columns = Math.floor(canvas.width / fontSize);
+
+    const drops = [];
+    const speeds = [];
+    const fades = [];
+    for (let i = 0; i < columns; i++) {
+      drops[i] = 1;
+      speeds[i] = Math.random() * 0.5 + 0.3; // Different speeds for the drops
+      fades[i] = Math.random() * 0.08 + 0.02; // Different trail lengths
+    }
+
+    // Hacker sound (Web Audio API)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playBeep(freq, duration) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.type = "sawtooth";
+      osc.frequency.value = freq;
+
+      gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // Suspend/Resume audio on click
+    document.addEventListener("click", () => {
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      } else {
+        audioCtx.suspend();
+      }
+    });
+
+    function draw() {
+
+      // Shadow reset: otherwise it would affect the background fill (making it all green)
+      ctx.shadowBlur = 0;
+
+      // Glitch effect
+      const glitch = Math.random() < 0.02;
+
+      for (let i = 0; i < columns; i++) {
+        if (glitch) {
+          ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+        } else {
+          ctx.fillStyle = `rgba(0, 0, 0, ${fades[i]})`;
+        }
+        ctx.fillRect(i * fontSize, 0, fontSize, canvas.height);
+      }
+
+      ctx.font = fontSize + "px monospace";
+
+      for (let i = 0; i < columns; i++) {
+
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        const lastRow = Math.floor(drops[i]);
+        const yBody = lastRow * fontSize;
+
+        // Random reset (when the drop reaches the bottom)
+        if (yBody > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+          speeds[i] = Math.random() * 0.5 + 0.3; // New speed
+          fades[i] = Math.random() * 0.08 + 0.02; // New length
+
+          // Sound when it restarts
+          playBeep(100 + Math.random() * 200, 0.15);
+        }
+
+        drops[i] += speeds[i];
+        const currentRow = Math.floor(drops[i]);
+        const yHead = currentRow * fontSize;
+
+        // If the drop has moved down one row
+        if (currentRow > lastRow) {
+          // Clears the background in a transparent way to avoid overlap and draws the green body
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.fillStyle = "rgba(0, 0, 0, 1)";
+          ctx.fillRect(i * fontSize, yBody - fontSize + 2, fontSize, fontSize);
+
+          ctx.globalCompositeOperation = "source-over"; // ripristina la modalità normale
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "#00FF41";
+          ctx.fillText(text, i * fontSize, yBody);
+        }
+
+        // Clears the background in a transparent way to avoid overlap and draws the bright head at the current row
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.fillStyle = "rgba(0, 0, 0, 1)";
+        ctx.fillRect(i * fontSize, yHead - fontSize + 2, fontSize, fontSize);
+
+        ctx.globalCompositeOperation = "source-over"; // restores the normal mode
+        ctx.fillStyle = "#FFFFFF";
+        ctx.shadowColor = "#00FF41";
+        ctx.shadowBlur = 15;
+        ctx.fillText(text, i * fontSize, yHead);
+
+        // Random sound
+        if (Math.random() < 0.002) {
+          playBeep(200 + Math.random() * 800, 0.1);
+        }
+      }
+    }
+
+    setInterval(draw, 100);
+
+    // Dynamic resize
+    window.addEventListener("resize", () => {
+      const oldColumns = columns;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      columns = Math.floor(canvas.width / fontSize);
+
+      for (let i = oldColumns; i < columns; i++) {
+        drops[i] = Math.random() * -(canvas.height / fontSize); // Start slightly offscreen to fill better
+        speeds[i] = Math.random() * 0.5 + 0.3;
+        fades[i] = Math.random() * 0.08 + 0.02;
+      }
+    });
+  </script>
+
+</body>
+
+</html>

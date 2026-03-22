@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Pip-Boy Survival</title>
+
+<style>
+body{
+  background:#111;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+  font-family:monospace;
+  color:#33ff33;
+}
+
+#pipboy{
+  width:800px;
+  height:500px;
+  background:#001100;
+  border:8px solid #00ff00;
+  box-shadow:0 0 40px #00ff00;
+  padding:10px;
+  position:relative;
+}
+
+/* CRT scanlines */
+#pipboy::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(0,255,0,0.05) 0,
+    rgba(0,255,0,0.05) 2px,
+    transparent 2px,
+    transparent 4px);
+  pointer-events:none;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  border-bottom:2px solid #0f0;
+}
+
+nav{
+  display:flex;
+  justify-content:space-around;
+  border-bottom:2px solid #0f0;
+}
+
+button{
+  background:none;
+  border:none;
+  color:#33ff33;
+  font-size:18px;
+  cursor:pointer;
+}
+
+button.active{background:#003300}
+
+.section{
+  display:none;
+  height:380px;
+  overflow:auto;
+}
+
+.section.active{display:block}
+
+li{cursor:pointer}
+
+.boot{
+  font-size:28px;
+  text-align:center;
+  animation:boot 3s steps(6);
+}
+
+@keyframes boot{
+  from{opacity:0}
+  to{opacity:1}
+}
+</style>
+</head>
+
+<body>
+
+<div id="pipboy">
+
+<div id="boot" class="boot">
+ROBCO INDUSTRIES (TM)<br>
+PIP-OS v7.3<br>
+INITIALIZING...
+</div>
+
+<div id="ui" style="display:none">
+
+<header>
+<span>PIP-BOY 3000 Mk IV</span>
+<span id="clock"></span>
+</header>
+
+<nav>
+<button onclick="tab('stat')" class="active">STAT</button>
+<button onclick="tab('inv')">INV</button>
+<button onclick="tab('data')">DATA</button>
+<button onclick="tab('map')">MAP</button>
+<button onclick="tab('radio')">RADIO</button>
+</nav>
+
+<!-- STAT -->
+<div id="stat" class="section active">
+<h2>STAT</h2>
+<p>HP: <span id="hp"></span></p>
+<p>RAD: <span id="rad"></span>%</p>
+<p>LVL: <span id="lvl"></span></p>
+<p>XP: <span id="xp"></span>/100</p>
+<p>PESO: <span id="weight"></span>/50</p>
+
+<button onclick="fight()">⚔️ Combatti</button>
+<button onclick="explore()">🧭 Esplora</button>
+
+<p id="log"></p>
+</div>
+
+<!-- INVENTARIO -->
+<div id="inv" class="section">
+<h2>INVENTARIO</h2>
+<ul id="inventory"></ul>
+<p id="itemDesc"></p>
+</div>
+
+<!-- MISSIONI -->
+<div id="data" class="section">
+<h2>MISSIONI</h2>
+<p>✔ Sopravvivi nella Zona</p>
+<p>☐ Raggiungi Livello 5</p>
+</div>
+
+<!-- MAPPA -->
+<div id="map" class="section">
+<h2>MAPPA</h2>
+<p>☢️ Zona Selvaggia</p>
+<p>📍 Posizione attuale: Settore casuale</p>
+</div>
+
+<!-- RADIO -->
+<div id="radio" class="section">
+<h2>RADIO</h2>
+<button onclick="playRadio()">Diamond City Radio</button>
+<button onclick="stopRadio()">OFF</button>
+</div>
+
+</div>
+</div>
+
+<script>
+/* ---------- BOOT ---------- */
+setTimeout(()=>{
+ document.getElementById("boot").style.display="none"
+ document.getElementById("ui").style.display="block"
+},3000)
+
+/* ---------- CLOCK ---------- */
+setInterval(()=>{
+ document.getElementById("clock").textContent =
+  new Date().toLocaleTimeString()
+},1000)
+
+/* ---------- PLAYER ---------- */
+let player={
+ hp:100,
+ rad:0,
+ lvl:1,
+ xp:0,
+ weight:0
+}
+
+/* ---------- INVENTARIO ---------- */
+let inventory=[
+ {name:"Stimpak",desc:"Cura 30 HP",weight:1,use:()=>{player.hp=Math.min(100,player.hp+30)}},
+ {name:"RadAway",desc:"-20 RAD",weight:1,use:()=>{player.rad=Math.max(0,player.rad-20)}},
+ {name:"Carne Mutante",desc:"Cura 10 HP",weight:2,use:()=>{player.hp=Math.min(100,player.hp+10)}}
+]
+
+/* ---------- UI UPDATE ---------- */
+function update(){
+ hp.textContent=player.hp
+ rad.textContent=player.rad
+ lvl.textContent=player.lvl
+ xp.textContent=player.xp
+ weight.textContent=inventory.reduce((a,i)=>a+i.weight,0)
+
+ inventoryUI()
+}
+
+function inventoryUI(){
+ const ul=document.getElementById("inventory")
+ ul.innerHTML=""
+ inventory.forEach((item,i)=>{
+   const li=document.createElement("li")
+   li.textContent=item.name
+   li.onclick=()=>{
+     itemDesc.textContent=item.desc
+     item.use()
+     inventory.splice(i,1)
+     update()
+   }
+   ul.appendChild(li)
+ })
+}
+
+/* ---------- COMBATTIMENTO ---------- */
+function fight(){
+ const dmg=Math.floor(Math.random()*25)
+ player.hp-=dmg
+
+ const xpGain=Math.floor(Math.random()*40)+10
+ player.xp+=xpGain
+
+ log.textContent="Hai subito "+dmg+" danni"
+
+ levelCheck()
+ update()
+}
+
+/* ---------- ESPLORAZIONE ---------- */
+function explore(){
+ const r=Math.random()
+
+ if(r<0.3){
+   inventory.push({
+     name:"Stimpak",
+     desc:"Cura 30 HP",
+     weight:1,
+     use:()=>player.hp=Math.min(100,player.hp+30)
+   })
+   log.textContent="Hai trovato uno Stimpak"
+ }
+ else if(r<0.6){
+   player.rad+=10
+   log.textContent="Radiazioni aumentate!"
+ }
+ else{
+   log.textContent="Nessun evento"
+ }
+
+ update()
+}
+
+/* ---------- LEVEL UP ---------- */
+function levelCheck(){
+ if(player.xp>=100){
+   player.lvl++
+   player.xp=0
+   player.hp=100
+   log.textContent="LEVEL UP!"
+ }
+}
+
+/* ---------- RADIO ---------- */
+let audio
+function playRadio(){
+ if(!audio){
+  audio=new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")
+  audio.loop=true
+ }
+ audio.play()
+}
+
+function stopRadio(){
+ audio?.pause()
+}
+
+/* ---------- TAB ---------- */
+function tab(id){
+ document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"))
+ document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"))
+
+ document.getElementById(id).classList.add("active")
+ event.target.classList.add("active")
+}
+
+update()
+</script>
+
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Matrix GOD MODE</title>
+<style>
+  body { margin:0; overflow:hidden; background:black; }
+  canvas { display:block; }
+
+  #boot {
+    position:fixed;
+    inset:0;
+    background:black;
+    color:#00FF41;
+    font-family:monospace;
+    padding:20px;
+    font-size:18px;
+    white-space:pre-line;
+  }
+</style>
+</head>
+<body>
+
+<div id="boot"></div>
+<canvas id="matrix"></canvas>
+
+<script>
+const bootText = `
+Wake up, Neo...
+The Matrix has you...
+Follow the white rabbit.
+Knock, knock, Neo.
+`;
+
+const bootDiv = document.getElementById("boot");
+let i = 0;
+
+function typeBoot() {
+  if (i < bootText.length) {
+    bootDiv.textContent += bootText[i++];
+    setTimeout(typeBoot, 40);
+  } else {
+    setTimeout(() => bootDiv.style.display = "none", 1200);
+  }
+}
+typeBoot();
+
+// ---------- CANVAS ----------
+const canvas = document.getElementById("matrix");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+const chars = "アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$#@%";
+const fontSize = 18;
+const columns = Math.floor(canvas.width / fontSize);
+
+const drops = Array(columns).fill(0).map(() => Math.random() * canvas.height);
+
+// ---------- AUDIO ----------
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+document.addEventListener("click", () => audioCtx.resume());
+
+function beep(f, d=0.1) {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  o.type="square";
+  o.frequency.value=f;
+  g.gain.value=0.02;
+  o.start();
+  o.stop(audioCtx.currentTime + d);
+}
+
+// ---------- MOUSE ----------
+let mouseX = innerWidth/2;
+let mouseY = innerHeight/2;
+addEventListener("mousemove", e=>{
+  mouseX=e.clientX;
+  mouseY=e.clientY;
+});
+
+// ---------- MESSAGGI ----------
+const hidden = [
+  "ACCESS GRANTED",
+  "DECRYPTING...",
+  "TRACE DETECTED",
+  "ROOT ACCESS",
+  "HELLO, NEO",
+  "SYSTEM BREACHED"
+];
+
+// ---------- LOOP ----------
+function draw(){
+
+  // Glitch
+  const glitch = Math.random()<0.03;
+  ctx.fillStyle = glitch
+    ? "rgba(0,0,0,0.25)"
+    : "rgba(0,0,0,0.06)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.font = fontSize+"px monospace";
+
+  for(let i=0;i<columns;i++){
+
+    const depth = 1 + (i/columns)*1.5; // pseudo 3D
+    const size = fontSize * depth;
+
+    const char = chars[Math.floor(Math.random()*chars.length)];
+    const x = i * fontSize;
+    const y = drops[i];
+
+    // Testa luminosa
+    ctx.font = size+"px monospace";
+    ctx.fillStyle="#CCFFCC";
+    ctx.shadowColor="#00FF41";
+    ctx.shadowBlur=20;
+    ctx.fillText(char, x, y);
+
+    // Scia
+    ctx.shadowBlur=0;
+    ctx.fillStyle="#00FF41";
+    ctx.fillText(char, x, y - size);
+
+    // Reazione al mouse
+    const dx = x - mouseX;
+    const dy = y - mouseY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if(dist < 120) drops[i] += 6;
+
+    // Reset
+    if(y > canvas.height && Math.random()>0.97){
+      drops[i] = 0;
+
+      // Suono
+      beep(120 + Math.random()*400);
+
+      // Messaggio hacker
+      if(Math.random()<0.2){
+        ctx.fillStyle="#00FF41";
+        ctx.font="28px monospace";
+        ctx.fillText(
+          hidden[Math.floor(Math.random()*hidden.length)],
+          Math.random()*canvas.width,
+          Math.random()*canvas.height
+        );
+      }
+    }
+
+    drops[i] += 2 + depth;
+  }
+
+  // Flash violento
+  if(Math.random()<0.01){
+    ctx.fillStyle="rgba(0,255,65,0.08)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  // Glitch linee
+  if(Math.random()<0.02){
+    for(let k=0;k<5;k++){
+      const y = Math.random()*canvas.height;
+      ctx.fillStyle="#00FF41";
+      ctx.fillRect(0,y,canvas.width,2);
+    }
+  }
+}
+
+setInterval(draw, 30);
+
+// Resize
+addEventListener("resize",()=>{
+  canvas.width=innerWidth;
+  canvas.height=innerHeight;
+});
+</script>
+
+</body>
+</html>

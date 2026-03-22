@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mini Mario JS</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #5c94fc;
+        }
+
+        canvas {
+            display: block;
+            margin: auto;
+            background: #87ceeb;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="game" width="800" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d");
+
+        // Player
+        const player = {
+            x: 100,
+            y: 300,
+            width: 40,
+            height: 50,
+            color: "red",
+            dx: 0,
+            dy: 0,
+            speed: 5,
+            jumpForce: 12,
+            grounded: false
+        };
+
+        // Gravity
+        const gravity = 0.6;
+
+        // Platforms
+        const platforms = [
+            { x: 0, y: 350, width: 800, height: 50 },
+            { x: 200, y: 280, width: 120, height: 20 },
+            { x: 400, y: 220, width: 120, height: 20 },
+            { x: 600, y: 160, width: 120, height: 20 }
+        ];
+
+        // Enemy
+        const enemy = {
+            x: 700,
+            y: 310,
+            width: 40,
+            height: 40,
+            color: "green",
+            dx: 2
+        };
+
+        let keys = {};
+
+        document.addEventListener("keydown", e => keys[e.code] = true);
+        document.addEventListener("keyup", e => keys[e.code] = false);
+
+        function update() {
+            // Movimento
+            if (keys["ArrowRight"]) player.dx = player.speed;
+            else if (keys["ArrowLeft"]) player.dx = -player.speed;
+            else player.dx = 0;
+
+            // Salto
+            if (keys["Space"] && player.grounded) {
+                player.dy = -player.jumpForce;
+                player.grounded = false;
+            }
+
+            // Gravità
+            player.dy += gravity;
+
+            // Movimento
+            player.x += player.dx;
+            player.y += player.dy;
+
+            // Collisioni piattaforme
+            player.grounded = false;
+            platforms.forEach(platform => {
+                if (player.x < platform.x + platform.width &&
+                    player.x + player.width > platform.x &&
+                    player.y < platform.y + platform.height &&
+                    player.y + player.height > platform.y) {
+
+                    player.y = platform.y - player.height;
+                    player.dy = 0;
+                    player.grounded = true;
+                }
+            });
+
+            // Movimento nemico
+            enemy.x += enemy.dx;
+            if (enemy.x <= 0 || enemy.x + enemy.width >= canvas.width) {
+                enemy.dx *= -1;
+            }
+
+            // Collisione nemico
+            if (player.x < enemy.x + enemy.width &&
+                player.x + player.width > enemy.x &&
+                player.y < enemy.y + enemy.height &&
+                player.y + player.height > enemy.y) {
+
+                alert("Game Over!");
+                document.location.reload();
+            }
+
+            // Vittoria
+            if (player.x > 750) {
+                alert("Hai vinto!");
+                document.location.reload();
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Player
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Platforms
+            ctx.fillStyle = "#654321";
+            platforms.forEach(p => {
+                ctx.fillRect(p.x, p.y, p.width, p.height);
+            });
+
+            // Enemy
+            ctx.fillStyle = enemy.color;
+            ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+
+</body>
+
+</html>
